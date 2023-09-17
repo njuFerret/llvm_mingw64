@@ -20,8 +20,8 @@ set BUILD_DEPS_DIR=%ROOT%\deps
 
 set OPENSSL_DIR=%BUILD_DEPS_DIR%/3rdParty/openssl
 set ZLIB_DIR=%BUILD_DEPS_DIR%/3rdParty/zlib
-:set LLVM_DIR=%ROOT%\llvm-project
-set LLVM_DIR=%ROOT%\sources
+set LLVM_DIR=%ROOT%\llvm-project
+:set LLVM_DIR=%ROOT%\sources
 set LLVM_INSTALL_DIR=%ROOT%\libclang
 set LLVM_INSTALL_SHARED=%LLVM_INSTALL_DIR%\shared
 set LLVM_INSTALL_STATIC=%LLVM_INSTALL_DIR%\static
