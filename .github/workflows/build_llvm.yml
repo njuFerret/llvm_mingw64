@@ -35,6 +35,7 @@ jobs:
 
 
       - name: run build bat
+        shell: cmd
         run: call build_libclang.bat
       # Runs a single command using the runners shell
       # - name: Run a one-line script
