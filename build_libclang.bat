@@ -27,7 +27,6 @@ set LLVM_INSTALL_STATIC=%LLVM_INSTALL_DIR%\static
 :set LLVM_INSTALL_DIR=D:\Dev\libclang
 
 :set path=C:\Windows;C:\Windows\System32
-set paht=%CD%
 set path=%path%;%BUILD_DEPS_DIR%\cmake\bin
 set path=%path%;%CD%\mingw64\bin
 
@@ -41,12 +40,23 @@ set MINGW=mingw64-x86_64.7z
 curl -L -o 7zr.exe https://github.com/FetheredSerpent/qt-mingw64/releases/download/dependencies/7zr.exe
 curl -L -o deps.7z https://github.com/njuFerret/llvm_mingw64/releases/download/dependencies/deps.7z
 curl -L -o %MINGW% https://github.com/niXman/mingw-builds-binaries/releases/download/13.1.0-rt_v11-rev1/x86_64-13.1.0-release-posix-seh-ucrt-rt_v11-rev1.7z
+
+tree .
+
+echo 解压deps.7z
 7zr x deps.7z 
+
+echo 解压%MinGW%
 7zr x %MINGW%
 
 del deps.7z 
 del %MINGW%
 
+python -V
+perl -v
+ninja -v
+
+echo LLVM路径: %LLVM_DIR%，构建路径: %LLVM_DIR%\build, 安装路径%LLVM_INSTALL_DIR%
 
 : 3. 配置为动态库，启用clang和clang-tools-extra（包含clangd和clang-tidy），不包括zlib，注意动态库时qt 6.5.2编译不通过
 :cmake -GNinja -DBUILD_SHARED_LIBS:BOOL=ON -DLIBCLANG_LIBRARY_VERSION=16.0.6 -DLLVM_ENABLE_PROJECTS=clang;clang-tools-extra -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=%LLVM_INSTALL_DIR% -S%LLVM_DIR%/llvm -B%LLVM_DIR%/build
