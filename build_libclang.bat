@@ -47,7 +47,6 @@ curl -L -o 7zr.exe https://github.com/FetheredSerpent/qt-mingw64/releases/downlo
 curl -L -o deps.7z https://github.com/njuFerret/llvm_mingw64/releases/download/dependencies/deps.7z
 curl -L -o %MINGW% https://github.com/niXman/mingw-builds-binaries/releases/download/13.1.0-rt_v11-rev1/x86_64-13.1.0-release-posix-seh-ucrt-rt_v11-rev1.7z
 
-tree .
 
 echo 解压deps.7z
 7zr x deps.7z 
@@ -58,24 +57,24 @@ echo 解压%MinGW%
 del deps.7z 
 del %MINGW%
 
-python -V
-perl -v
-ninja --version
 
 echo LLVM路径: %LLVM_DIR%，构建路径: %LLVM_DIR%\build, 安装路径%LLVM_INSTALL_DIR%
 
 : 3. 配置为动态库，启用clang和clang-tools-extra（包含clangd和clang-tidy），不包括zlib，注意动态库时qt 6.5.2编译不通过
-:cmake -GNinja -DBUILD_SHARED_LIBS:BOOL=ON -DLIBCLANG_LIBRARY_VERSION=16.0.6 -DLLVM_ENABLE_PROJECTS=clang;clang-tools-extra -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=%LLVM_INSTALL_DIR% -S%LLVM_DIR%/llvm -B%LLVM_DIR%/build
+:cmake -GNinja -DBUILD_SHARED_LIBS:BOOL=ON -DLIBCLANG_LIBRARY_VERSION=16.0.6 -DLLVM_ENABLE_PROJECTS=clang;clang-tools-extra -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=%LLVM_INSTALL_SHARED% -S%LLVM_DIR%/llvm -B%LLVM_DIR%/build
 cmake -GNinja -DBUILD_SHARED_LIBS:BOOL=ON -DLLVM_ENABLE_PROJECTS=clang;clang-tools-extra -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=%LLVM_INSTALL_SHARED% -S%LLVM_DIR%/llvm -B%LLVM_DIR%/build
 
 cmake --build %LLVM_DIR%/build --parallel 
 
 cmake --build %LLVM_DIR%/build --parallel --target install  
 
-7zr a %LLVM_INSTALL_DIR%.7z %LLVM_INSTALL_DIR%
+rd /q /s %LLVM_DIR%\build
+mkdir %LLVM_DIR%\build
+
+
 
 : 4. 配置为静态库，启用clang和clang-tools-extra（包含clangd和clang-tidy），不包括zlib，（包括zlib，会导致lupdate.exe链接到libzlib.dll）
-:cmake -GNinja -DBUILD_SHARED_LIBS:BOOL=OFF -DLIBCLANG_BUILD_STATIC:BOOL=ON -DLLVM_ENABLE_PROJECTS=clang;clang-tools-extra -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=%LLVM_INSTALL_DIR% %LLVM_DIR%/llvm -B%LLVM_DIR%/build
+cmake -GNinja -DBUILD_SHARED_LIBS:BOOL=OFF -DLIBCLANG_BUILD_STATIC:BOOL=ON -DLLVM_ENABLE_PROJECTS=clang;clang-tools-extra -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=%LLVM_INSTALL_STATIC% -S%LLVM_DIR%/llvm -B%LLVM_DIR%/build
 
 : 编译
 ::cmake --build %LLVM_DIR%/build --parallel 
@@ -84,4 +83,4 @@ cmake --build %LLVM_DIR%/build --parallel --target install
 cmake --build %LLVM_DIR%/build --parallel --target install  
 :或
 :cmake --install %LLVM_DIR%/build
-
+7zr a %LLVM_INSTALL_DIR%.7z %LLVM_INSTALL_DIR%
