@@ -28,7 +28,7 @@ jobs:
           repository: llvm/llvm-project
           ref: ''
           # Relative path under $GITHUB_WORKSPACE to place the repository
-          path: 'sources'
+          path: 'llvm-project'
       
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
