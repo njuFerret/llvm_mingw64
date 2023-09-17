@@ -36,6 +36,11 @@ set path=%path%;%BUILD_DEPS_DIR%\perl\bin
 
 set MINGW=mingw64-x86_64.7z
 
+dir %LLVM_DIR%
+
+mkdir %LLVM_INSTALL_SHARED%
+mkdir %LLVM_INSTALL_STATIC%
+mkdir %LLVM_DIR%\build
 
 curl -L -o 7zr.exe https://github.com/FetheredSerpent/qt-mingw64/releases/download/dependencies/7zr.exe
 curl -L -o deps.7z https://github.com/njuFerret/llvm_mingw64/releases/download/dependencies/deps.7z
@@ -54,7 +59,7 @@ del %MINGW%
 
 python -V
 perl -v
-ninja -v
+ninja --version
 
 echo LLVM路径: %LLVM_DIR%，构建路径: %LLVM_DIR%\build, 安装路径%LLVM_INSTALL_DIR%
 
