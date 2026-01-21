@@ -1,0 +1,11 @@
+# '#' 开头的行为注释，注意不要在版本号后加注释，会导致解析错误
+
+llvm=21.1.8
+# mingw=MinGW-x86_64-15.2.0-release-posix-seh-ucrt-rt_v13-rev0
+mingw=MinGW-x86_64-13.1.0-release-posix-seh-ucrt-rt_v11-rev1_fix2
+# mingw=x86_64-14.2.0-release-posix-seh-ucrt-rt_v12-rev0
+
+qt=6.8.3
+# cmake 已经自带，不用安装
+# cmake=3.30.5
+install_prefix=D:\Dev

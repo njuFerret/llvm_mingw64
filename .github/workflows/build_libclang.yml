@@ -1,0 +1,295 @@
+name: build libclang Task
+
+on:
+  workflow_dispatch:
+    inputs:
+      llvm-version:
+        description: 'libclang Build Version'
+        required: true
+        type: string
+      mingw:
+        description: 'mingw Version'
+        required: true
+        type: string     
+      install-prefix: 
+        description: 'libraries install prefix'
+        required: true
+        type: string             
+      build-date:     
+        description: 'build date'
+        required: true
+        type: string       
+      upload:
+        description: 'Upload binaries to the release page'
+        required: true
+        default: false
+        type: boolean
+      runs-on:
+        description: "Runner to use for the build"
+        required: true
+        type: choice
+        options:
+          - ubuntu-22.04
+          - windows-2022
+  
+
+  workflow_call:
+    inputs:
+      llvm-version:
+        description: 'libclang Build Version'
+        required: true
+        type: string
+      mingw:
+        description: 'mingw Version'
+        required: true
+        type: string  
+      install-prefix: 
+        description: 'libraries install prefix'
+        required: true
+        type: string                           
+      build-date:     
+        description: 'build date'
+        required: true
+        type: string       
+      upload:
+        description: 'Upload binaries to the release page'
+        required: true
+        default: false
+        type: boolean
+      runs-on:
+        description: "Runner to use for the build"
+        required: true
+        type: string
+    # secrets:
+    #   RELEASE_TASKS_USER_TOKEN:
+    #     description: "Secret used to check user permissions."
+    #     required: false
+jobs:
+  # define-build-mode:
+  # runs-on: ubuntu-latest
+  # outputs: 
+  #   build-mode: ${{ steps.modes.outputs.build-mode }}
+  # steps:
+  #   - name: Define build mode
+  #     id: modes
+  #     run: |
+  #       echo 'build-mode=["shared", "static"]' >> "$GITHUB_OUTPUT"
+  test:
+    name: test    
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test 
+        shell: bash
+        run: |
+          echo "llvm-version=${{ inputs.llvm-version }}"
+          echo "mingw-version=${{ inputs.mingw }}"
+          echo "install-prefix=${{ inputs.install-prefix }}"
+          echo "build-date=${{ inputs.build-date }}"
+
+
+  build:
+    name: buil libclang    
+    strategy:
+      matrix:
+        buildmode: 
+        - shared
+        - static
+        - qtcreator-shared
+    runs-on: ${{ inputs.runs-on }}
+      
+    steps:
+      - name: check out 
+        uses: actions/checkout@v4   
+
+      - name: Install ninja (windows)
+        run: choco install ninja
+
+      - name: toolsets Test 
+        shell: cmd
+        # system(windows-2022) has shipped with cmake/7zip
+        run: |
+          echo -------------------- test cmake --------------------------
+          cmake --version | findstr version
+          echo -------------------- test ninja --------------------------
+          ninja --version          
+          echo -------------------- test python --------------------------
+          python -V
+          echo -------------------- test perl --------------------------
+          perl -v | findstr version                        
+          echo -------------------- test git --------------------------
+          git --version
+          echo -------------------- test 7z --------------------------
+          7z | findstr 7-Zip
+          echo -------------------- test end --------------------------
+
+      # 系统自带 cmake/7z/git, 需要下载ninja
+      - name: download build toolsets 
+        shell: cmd
+        run: |
+          set mingw=${{ inputs.mingw }}
+          curl -L -o  %mingw%.7z  https://github.com/njuFerret/actions/releases/download/deps/%mingw%.7z
+          :: # curl -L -o  %mingw%.7z  https://github.com/niXman/mingw-builds-binaries/releases/download/14.2.0-rt_v12-rev0/%mingw%.7z
+          :: # curl -L -o ninja-win.zip https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-win.zip
+          7z x %mingw%.7z
+          :: # 7z x ninja-win.zip -oninja
+          if exist mingw64 (
+             move mingw64 MinGW
+          )
+          
+
+      - name: Checkout llvm
+        uses: actions/checkout@v4
+        with:
+          repository: 'llvm/llvm-project'
+          ref: 'llvmorg-${{ inputs.llvm-version }}'
+          path: llvm-project
+
+      - name: config environment and build
+        shell: cmd
+        run: |
+          set PATH=%CD%\MinGW\bin;%CD%\ninja;%PATH%
+          set START=%CD%
+          set CLANG_INSTALL_PREFIX=${{ inputs.install-prefix }}\libclang
+          set build_name=libclang-${{ inputs.llvm-version }}_${{ inputs.mingw }}_${{ matrix.buildmode}}
+          set build_doc=%CLANG_INSTALL_PREFIX%\%build_name%.txt
+
+          @REM check toolsets
+          echo -------------------- test mingw --------------------------
+          g++ -v
+          echo -------------------- test ninja --------------------------
+          ninja --version 
+          echo -------------------- test end --------------------------
+
+          cd llvm-project
+          @REM # curl -L -o clean_llvm_platform.patch https://github.com/njuFeradret/actions/releases/download/deps/clean_llvm_platform.patch
+          @REM # curl -L -o fix_shared_build.patch https://github.com/njuFerret/actions/releases/download/deps/fix_shared_build.patch
+
+          ::@REM echo ******************** remove platform except 'X86' **********************
+          ::@REM git apply ../patch/llvm_remove_unused_platform.patch 
+          ::@REM git diff --stat
+
+          @REM # 在构建 LLVM 时，请务必将 -DLLVM_EXPORT_SYMBOLS_FOR_PLUGINS=ON 传递给 CMake,否则 clazy 将不起作用。
+          @REM # 动态库不要使用: BUILD_SHARED_LIBS not compatible with LLVM_EXPORT_SYMBOLS_FOR_PLUGINS
+
+          @REM # -DLLVM_TARGETS_TO_BUILD:STRING=X86 ^
+          @REM # -DLLVM_EXPORT_SYMBOLS_FOR_PLUGINS:BOOL=ON^
+
+          if "${{matrix.buildmode}}"=="static" (
+            cmake -GNinja -Wno-dev -Wno-deprecated ^
+              -DCMAKE_CXX_FLAGS="-Wno-dangling-reference -Wno-unknown-pragmas -Wno-missing-field-initializers -Wno-deprecated-declarations -Wno-deprecated-enum-enum-conversion "^
+              -DBUILD_SHARED_LIBS:BOOL=OFF ^
+              -DLLVM_TARGETS_TO_BUILD:STRING=X86 ^
+              -DCLANG_TOOLS_EXTRA_INCLUDE_DOCS:BOOL=OFF ^
+              -DLIBCLANG_BUILD_STATIC:BOOL=ON ^
+              -DLLVM_ENABLE_PROJECTS=clang;clang-tools-extra ^
+              -DCMAKE_BUILD_TYPE=Release ^
+              -DLLVM_ENABLE_RTTI:BOOL=ON ^
+              -DCMAKE_INSTALL_PREFIX=%CLANG_INSTALL_PREFIX% ^
+              -S./llvm -B./build
+          ) else if "${{matrix.buildmode}}"=="shared" (
+            @REM :: echo **********   turn off test module in  clang-tools-extra *****************    
+            @REM :: git apply ../patch/llvm_remove_test_in_clang-tools-extra_for_shared_build.patch
+            @REM :: echo **********************  check patch is applied **************************
+            @REM :: git diff --stat    
+            :: 按照AI提示做了修正, 测试
+            cmake -GNinja -Wno-dev -Wno-deprecated ^
+              -DBUILD_SHARED_LIBS=ON ^
+              -DLLVM_ENABLE_EH=ON ^
+              -DLLVM_ENABLE_RTTI=ON ^
+              -DLLVM_TARGETS_TO_BUILD=X86 ^
+              -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;llvm" ^
+              -DLLVM_BUILD_EXECUTIONENGINE=ON ^
+              -DLLVM_BUILD_ORC_JIT=ON ^
+              -DLLVM_ENABLE_TERMINFO=OFF ^
+              -DLLVM_ENABLE_ZLIB=OFF ^
+              -DLLVM_ENABLE_ZSTD=OFF ^
+              -DCMAKE_CXX_FLAGS="-Wno-dangling-reference -Wno-unknown-pragmas -Wno-missing-field-initializers -Wno-deprecated-declarations -Wno-deprecated-enum-enum-conversion" ^
+              -DCMAKE_BUILD_TYPE=Release ^
+              -DCMAKE_INSTALL_PREFIX=%CLANG_INSTALL_PREFIX% ^
+              -S ./llvm -B ./build 
+          )else if "${{matrix.buildmode}}"=="qtcreator-shared" (
+            cmake -GNinja -Wno-dev -Wno-deprecated ^
+              -DBUILD_SHARED_LIBS=ON ^
+              -DLLVM_ENABLE_EH=ON ^
+              -DLLVM_ENABLE_RTTI=ON ^
+              -DLLVM_TARGETS_TO_BUILD=X86 ^
+              -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra" ^
+              -DLLVM_BUILD_EXECUTIONENGINE=OFF ^
+              -DLLVM_BUILD_ORC_JIT=OFF ^
+              -DLLVM_BUILD_MCJIT=OFF ^
+              -DLLVM_ENABLE_JITLINK=OFF ^
+              -DLLVM_ENABLE_DIA=OFF ^
+              -DCMAKE_CXX_FLAGS="-Wno-dangling-reference -Wno-unknown-pragmas -Wno-missing-field-initializers -Wno-deprecated-declarations -Wno-deprecated-enum-enum-conversion" ^
+              -DCMAKE_BUILD_TYPE=Release ^
+              -DCMAKE_INSTALL_PREFIX=%CLANG_INSTALL_PREFIX% ^
+              -S ./llvm -B ./build           
+          )
+
+          @REM : 编译
+          cmake --build build --parallel 
+          @REM : 安装
+          cmake --build build --parallel --target install  
+
+          
+          MKDIR %CLANG_INSTALL_PREFIX%
+          
+          echo. >  %build_doc%
+          echo   ********************** libclang ver. ${{ inputs.llvm-version }} **************************** >>  %build_doc%
+          echo. >>  %build_doc%
+          echo   ********************** mingw version info **************************** >>  %build_doc%
+          g++ -v >> %build_doc% 2>&1
+
+          echo *********************** strip libclang binaries ****************************
+          cd %CLANG_INSTALL_PREFIX%
+          for %%f in (bin\*.exe bin\*.dll) do (
+            echo Stripping %%f
+            strip --strip-unneeded %%f
+          )
+          echo ********************** 打包 libclang  ****************************
+          cd %START%
+          echo 7z a %build_name%.7z %CLANG_INSTALL_PREFIX%
+          7z a %build_name%.7z %CLANG_INSTALL_PREFIX%
+          dir
+
+
+      - name: upload libclang-${{ inputs.llvm-version }} binaries
+        uses:  actions/upload-artifact@v4.4.3
+        with:
+          name: 'libclang-build-${{ matrix.buildmode}}'
+          path: ./libclang-${{ inputs.llvm-version }}_${{ inputs.mingw }}_${{ matrix.buildmode}}.7z
+
+
+  release:
+    permissions:
+      contents: write
+  
+    runs-on: ubuntu-latest
+    needs: [build]
+
+    steps:
+    - name: Download libclang
+      uses: actions/download-artifact@v4.1.8
+      with:          
+        # name: 'build-*'          
+        merge-multiple: true
+        # path: ./
+        pattern: 'libclang-build-*'
+
+    # - name: Unzip libclang
+    #   shell: bash
+    #   run: |
+    #     ls -l   
+    #     7z x libclang-${{ inputs.llvm-version }}_${{ inputs.mingw }}_static.7z
+    #     ls -l
+    #     ls -l libclang 
+
+
+    - name: Upload to Release
+      id: upload_to_release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: "*.7z"
+        tag_name: libclang-${{ inputs.llvm-version }}
+
+
+

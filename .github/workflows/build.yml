@@ -1,0 +1,79 @@
+name: build Task
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches: [ "dev" ]
+
+jobs:
+  versions_config:
+    name: Config libraries and build
+    runs-on: ubuntu-latest
+    outputs:
+      # release-version: ${{ steps.validate-tag.outputs.release-version }}
+      llvm-version: ${{ steps.get-versions.outputs.llvm-version }}
+      mingw-version: ${{ steps.get-versions.outputs.mingw-version }}
+      openssl-version: ${{ steps.get-versions.outputs.openssl-version }}
+      qt-version: ${{ steps.get-versions.outputs.qt-version }}
+      install-prefix: ${{ steps.get-versions.outputs.install-prefix }}
+      # cmake-version: ${{ steps.get-versions.outputs.cmake-version }}
+      build-date: ${{ steps.date.outputs.build-date }}
+    steps:
+      - name: generate library version files
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - name: generate version files
+        run: |
+          python3 ./utils/libraries_version.py
+          ls -l versions
+          
+      - name: get versions
+        id: get-versions
+        run: |
+          echo "llvm-version=$(cat versions/llvm)" >> $GITHUB_OUTPUT
+          echo "mingw-version=$(cat versions/mingw)" >> $GITHUB_OUTPUT
+          echo "openssl-version=$(cat versions/openssl)" >> $GITHUB_OUTPUT
+          echo "qt-version=$(cat versions/qt)" >> $GITHUB_OUTPUT
+          echo "install-prefix=$(cat versions/install_prefix)" >> $GITHUB_OUTPUT
+          # echo "cmake-version=$(cat versions/cmake)" >> $GITHUB_OUTPUT
+
+      - name: get build date      
+        id: date        
+        run: |  
+           echo "build-date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+
+  check-versions:
+    name: Check versions
+    runs-on: ubuntu-latest
+    needs: versions_config
+    steps:
+      - name: show library versions
+        run: |
+          echo "llvm-version=${{ needs.versions_config.outputs.llvm-version }}"
+          echo "mingw-version=${{ needs.versions_config.outputs.mingw-version }}"
+          echo "openssl-version=${{ needs.versions_config.outputs.openssl-version }}"
+          echo "qt-version=${{ needs.versions_config.outputs.qt-version }}"
+          # echo "cmake=${{ needs.versions_config.outputs.cmake-version }}"
+          echo "build-date=${{ needs.versions_config.outputs.build-date }}"
+
+  build-libclang:
+    name: build libclang
+    needs:
+      - versions_config
+      - check-versions
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on:
+          - windows-2022     
+    uses: ./.github/workflows/build_libclang.yml
+    with:
+      llvm-version: ${{ needs.versions_config.outputs.llvm-version }}
+      mingw: ${{ needs.versions_config.outputs.mingw-version }}
+      install-prefix: ${{ needs.versions_config.outputs.install-prefix }}
+      build-date: ${{ needs.versions_config.outputs.build-date }}
+      upload: true
+      runs-on: ${{ matrix.runs-on }}    
+
+  
