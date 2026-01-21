@@ -191,87 +191,47 @@ jobs:
             @REM :: git apply ../patch/llvm_remove_test_in_clang-tools-extra_for_shared_build.patch
             @REM :: echo **********************  check patch is applied **************************
             @REM :: git diff --stat    
-            :: 按照AI提示做了修正, 测试
-            ::cmake -GNinja -Wno-dev -Wno-deprecated ^
-              -DBUILD_SHARED_LIBS=ON ^
-              -DLLVM_ENABLE_EH=ON ^
-              -DLLVM_ENABLE_RTTI=ON ^
-              -DLLVM_TARGETS_TO_BUILD=X86 ^
-              -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;llvm" ^
-              -DLLVM_BUILD_EXECUTIONENGINE=ON ^
-              -DLLVM_BUILD_ORC_JIT=ON ^
-              -DLLVM_ENABLE_TERMINFO=OFF ^
-              -DLLVM_ENABLE_ZLIB=OFF ^
-              -DLLVM_ENABLE_ZSTD=OFF ^
-              -DCMAKE_CXX_FLAGS="-Wno-dangling-reference -Wno-unknown-pragmas -Wno-missing-field-initializers -Wno-deprecated-declarations -Wno-deprecated-enum-enum-conversion" ^
-              -DCMAKE_BUILD_TYPE=Release ^
-              -DCMAKE_INSTALL_PREFIX=%CLANG_INSTALL_PREFIX% ^
-              -S ./llvm -B ./build 
+            @REM :: 按照AI提示做了修正, 测试
+
             cmake -GNinja -Wno-dev -Wno-deprecated ^
               -DCMAKE_BUILD_TYPE=Release ^
               -DCMAKE_INSTALL_PREFIX=%CLANG_INSTALL_PREFIX% ^
-              ^
               -DCMAKE_C_FLAGS="-fuse-ld=lld" ^
               -DCMAKE_CXX_FLAGS="-fuse-ld=lld -Wno-dangling-reference -Wno-unknown-pragmas -Wno-missing-field-initializers -Wno-deprecated-declarations -Wno-deprecated-enum-enum-conversion" ^
               -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" ^
               -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld" ^
-              ^
               -DBUILD_SHARED_LIBS=ON ^
               -DLLVM_ENABLE_EH=ON ^
               -DLLVM_ENABLE_RTTI=ON ^
               -DLLVM_TARGETS_TO_BUILD="X86" ^
               -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;llvm" ^
-              ^
               -DLLVM_ENABLE_TERMINFO=OFF ^
               -DLLVM_ENABLE_LIBEDIT=OFF ^
               -DLLVM_ENABLE_ZSTD=OFF ^
               -DLLVM_ENABLE_ZLIB=OFF ^
-              ^
               -DLLVM_INCLUDE_TESTS=OFF ^
               -DLLVM_BUILD_TESTS=OFF ^
               -DLLVM_INCLUDE_EXAMPLES=OFF ^
               -DLLVM_INCLUDE_DOCS=OFF ^
               -S ./llvm -B ./build
           )else if "${{matrix.buildmode}}"=="qtcreator-shared" (
-            :: cmake -GNinja -Wno-dev -Wno-deprecated ^
-              -DBUILD_SHARED_LIBS=ON ^
-              -DLLVM_ENABLE_EH=ON ^
-              -DLLVM_ENABLE_RTTI=ON ^
-              -DLLVM_TARGETS_TO_BUILD=X86 ^
-              -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra" ^
-              -DLLVM_BUILD_EXECUTIONENGINE=OFF ^
-              -DLLVM_BUILD_ORC_JIT=OFF ^
-              -DLLVM_BUILD_MCJIT=OFF ^
-              -DLLVM_ENABLE_JITLINK=OFF ^
-              -DLLVM_ENABLE_DIA=OFF ^
-              -DCMAKE_CXX_FLAGS="-Wno-dangling-reference -Wno-unknown-pragmas -Wno-missing-field-initializers -Wno-deprecated-declarations -Wno-deprecated-enum-enum-conversion" ^
-              -DCMAKE_BUILD_TYPE=Release ^
-              -DCMAKE_INSTALL_PREFIX=%CLANG_INSTALL_PREFIX% ^
-              -S ./llvm -B ./build          
-
             cmake -GNinja -Wno-dev -Wno-deprecated ^
               -DCMAKE_BUILD_TYPE=Release ^
               -DCMAKE_INSTALL_PREFIX=%CLANG_INSTALL_PREFIX% ^
-              ^
               -DCMAKE_C_FLAGS="-fuse-ld=lld" ^
               -DCMAKE_CXX_FLAGS="-fuse-ld=lld -Wno-dangling-reference -Wno-unknown-pragmas -Wno-missing-field-initializers -Wno-deprecated-declarations -Wno-deprecated-enum-enum-conversion" ^
               -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" ^
               -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld" ^
-              ^
               -DBUILD_SHARED_LIBS=ON ^
               -DLLVM_ENABLE_EH=ON ^
               -DLLVM_ENABLE_RTTI=ON ^
               -DLLVM_TARGETS_TO_BUILD="X86" ^
-              ^
               -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra" ^
-              ^
               -DLLVM_DISTRIBUTION_COMPONENTS="clang;clangd;clang-resource-headers;libclang" ^
-              ^
               -DLLVM_ENABLE_TERMINFO=OFF ^
               -DLLVM_ENABLE_LIBEDIT=OFF ^
               -DLLVM_ENABLE_ZSTD=OFF ^
               -DLLVM_ENABLE_ZLIB=OFF ^
-              ^
               -DLLVM_INCLUDE_TESTS=OFF ^
               -DLLVM_BUILD_TESTS=OFF ^
               -DLLVM_INCLUDE_EXAMPLES=OFF ^
